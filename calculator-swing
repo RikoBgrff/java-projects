@@ -1,0 +1,169 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+public class CalculatorApp {
+    private JFrame frame;
+    private JTextField displayField;
+    private StringBuilder inputText = new StringBuilder();
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            new CalculatorApp().initialize();
+        });
+    }
+
+    private void initialize() {
+        frame = new JFrame("Calculator by rikobgrff");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+        frame.setSize(400, 600);
+
+        // Display field
+        displayField = new JTextField();
+        displayField.setHorizontalAlignment(JTextField.RIGHT);
+        displayField.setEditable(false);
+        displayField.setFont(new Font("Montserrat", Font.PLAIN, 30));
+        displayField.setPreferredSize(new Dimension(frame.getWidth(), 100));
+
+        // Add KeyListener to capture numpad input
+        displayField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char keyChar = e.getKeyChar();
+                if (Character.isDigit(keyChar) || keyChar == '.') {
+                    inputText.append(keyChar);
+                    displayField.setText(inputText.toString());
+                }
+            }
+        });
+
+        frame.add(displayField, BorderLayout.NORTH);
+
+        // Buttons panel
+        JPanel buttonsPanel = new JPanel(new GridLayout(5, 4, 10, 10));
+        addButton(buttonsPanel, "7");
+        addButton(buttonsPanel, "8");
+        addButton(buttonsPanel, "9");
+        addButton(buttonsPanel, "/");
+        addButton(buttonsPanel, "4");
+        addButton(buttonsPanel, "5");
+        addButton(buttonsPanel, "6");
+        addButton(buttonsPanel, "*");
+        addButton(buttonsPanel, "1");
+        addButton(buttonsPanel, "2");
+        addButton(buttonsPanel, "3");
+        addButton(buttonsPanel, "-");
+        addButton(buttonsPanel, "0");
+        addButton(buttonsPanel, ".");
+        addButton(buttonsPanel, "%");
+        addButton(buttonsPanel, "+");
+        addButton(buttonsPanel, "C");
+        addButton(buttonsPanel, "<-");
+        addButton(buttonsPanel, "+-");  // Toggle sign button
+
+        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        frame.add(buttonsPanel, BorderLayout.CENTER);
+
+        // Equal button
+        JButton equalsButton = new JButton("=");
+        equalsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                calculateResult();
+            }
+        });
+        equalsButton.setFont(new Font("Montserrat", Font.PLAIN, 30));
+        buttonsPanel.add(equalsButton);
+
+        // Make the displayField focusable
+        displayField.setFocusable(true);
+
+        // Add a dummy component to the frame to make it focusable initially
+        frame.add(new JButton());
+
+        // Set focus to the displayField
+        SwingUtilities.invokeLater(() -> displayField.requestFocusInWindow());
+
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+    private void addButton(Container container, String text) {
+        JButton button = new JButton(text);
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleButtonClick(text);
+            }
+        });
+        button.setFont(new Font("Arial", Font.PLAIN, 30));
+        container.add(button);
+    }
+
+    private void handleButtonClick(String buttonText) {
+        switch (buttonText) {
+            case "C":
+                clearDisplay();
+                break;
+            case "<-":
+                backspace();
+                break;
+            case "+-":
+                toggleSign();
+                break;
+            default:
+                inputText.append(buttonText);
+                displayField.setText(inputText.toString());
+        }
+    }
+
+    private void clearDisplay() {
+        inputText.setLength(0);
+        displayField.setText("");
+    }
+
+    private void backspace() {
+        if (inputText.length() > 0) {
+            inputText.deleteCharAt(inputText.length() - 1);
+            displayField.setText(inputText.toString());
+        }
+    }
+
+    private void toggleSign() {
+        if (inputText.length() > 0) {
+            char firstChar = inputText.charAt(0);
+            if (firstChar == '-') {
+                inputText.deleteCharAt(0);
+            } else {
+                inputText.insert(0, '-');
+            }
+            displayField.setText(inputText.toString());
+        }
+    }
+
+    private void calculateResult() {
+        try {
+            String result = evaluateExpression(inputText.toString());
+            displayField.setText(result);
+            inputText.setLength(0);
+            inputText.append(result);
+        } catch (Exception e) {
+            displayField.setText("Error");
+            inputText.setLength(0);
+        }
+    }
+
+    private String evaluateExpression(String expression) {
+        try {
+            return String.valueOf(new javax.script.ScriptEngineManager().getEngineByName("JavaScript").eval(expression));
+        } catch (javax.script.ScriptException e) {
+            return "Error";
+        }
+    }
+}
