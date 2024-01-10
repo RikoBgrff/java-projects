@@ -1,0 +1,48 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class ColorPickerApp extends JFrame {
+    private JPanel colorDisplayPanel;
+
+    public ColorPickerApp() {
+        setTitle("Color Picker by rikobgrff");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(400, 300);
+
+        JButton colorButton = new JButton("Pick Color");
+        colorDisplayPanel = new JPanel();
+        colorDisplayPanel.setPreferredSize(new Dimension(200, 200));
+        colorDisplayPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+
+        colorButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pickColor();
+            }
+        });
+
+        setLayout(new FlowLayout());
+        add(colorButton);
+        add(colorDisplayPanel);
+    }
+
+    private void pickColor() {
+        Color selectedColor = JColorChooser.showDialog(this, "Choose a Color", Color.BLACK);
+
+        if (selectedColor != null) {
+            colorDisplayPanel.setBackground(selectedColor);
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                ColorPickerApp colorPickerApp = new ColorPickerApp();
+                colorPickerApp.setVisible(true);
+            }
+        });
+    }
+}
