@@ -1,0 +1,282 @@
+import javax.swing.*;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
+import javax.swing.text.DefaultEditorKit;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
+import javax.swing.undo.UndoManager;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.io.*;
+
+public class NotepadApp extends JFrame {
+
+    private JTextArea textArea;
+    private JFileChooser fileChooser;
+    private UndoManager undoManager;
+
+    public NotepadApp() {
+        super("Notepad App");
+
+        textArea = new JTextArea();
+        fileChooser = new JFileChooser();
+        undoManager = new UndoManager();
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        add(scrollPane);
+
+        JMenuBar menuBar = new JMenuBar();
+        setJMenuBar(menuBar);
+        menuBar.setFont(menuBar.getFont().deriveFont(16.0f)); // Increase menu font size
+
+        JMenu fileMenu = new JMenu("File");
+        menuBar.add(fileMenu);
+
+        JMenuItem openItem = new JMenuItem("Open");
+        JMenuItem saveItem = new JMenuItem("Save");
+        JMenuItem exitItem = new JMenuItem("Exit");
+
+        fileMenu.add(openItem);
+        fileMenu.add(saveItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitItem);
+
+        openItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openFile();
+            }
+        });
+
+        saveItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveFile();
+            }
+        });
+
+        exitItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+
+        JMenu editMenu = new JMenu("Edit");
+        menuBar.add(editMenu);
+
+        JMenuItem undoItem = new JMenuItem("Undo");
+        JMenuItem redoItem = new JMenuItem("Redo");
+        JMenuItem cutItem = new JMenuItem(new DefaultEditorKit.CutAction());
+        JMenuItem copyItem = new JMenuItem(new DefaultEditorKit.CopyAction());
+        JMenuItem pasteItem = new JMenuItem(new DefaultEditorKit.PasteAction());
+
+        undoItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                undo();
+            }
+        });
+
+        redoItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                redo();
+            }
+        });
+
+        editMenu.add(undoItem);
+        editMenu.add(redoItem);
+        editMenu.addSeparator();
+        editMenu.add(cutItem);
+        editMenu.add(copyItem);
+        editMenu.add(pasteItem);
+
+        textArea.getDocument().addUndoableEditListener(new UndoableEditListener() {
+            @Override
+            public void undoableEditHappened(UndoableEditEvent e) {
+                undoManager.addEdit(e.getEdit());
+            }
+        });
+
+        // Add KeyListeners for Ctrl+Z (Undo) and Ctrl+Y (Redo)
+        textArea.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if ((e.getKeyCode() == KeyEvent.VK_Z) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+                    undo();
+                } else if ((e.getKeyCode() == KeyEvent.VK_Y) && ((e.getModifiers() & KeyEvent.CTRL_MASK) != 0)) {
+                    redo();
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+            }
+        });
+
+        JMenu formatMenu = new JMenu("Format");
+        menuBar.add(formatMenu);
+
+        JMenuItem increaseFontSizeItem = new JMenuItem("Increase Font Size");
+        JMenuItem decreaseFontSizeItem = new JMenuItem("Decrease Font Size");
+        JMenuItem changeBackgroundColorItem = new JMenuItem("Change Background Color");
+        JMenuItem changeFontColorItem = new JMenuItem("Change Font Color");
+        JMenuItem changeFontFamilyItem = new JMenu("Change Font Family");
+
+        formatMenu.add(increaseFontSizeItem);
+        formatMenu.add(decreaseFontSizeItem);
+        formatMenu.add(changeBackgroundColorItem);
+        formatMenu.add(changeFontColorItem);
+        formatMenu.add(changeFontFamilyItem);
+
+        increaseFontSizeItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                increaseFontSize();
+            }
+        });
+
+        decreaseFontSizeItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                decreaseFontSize();
+            }
+        });
+
+        changeBackgroundColorItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeBackgroundColor();
+            }
+        });
+
+        changeFontColorItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeFontColor();
+            }
+        });
+
+        JMenuItem arialItem = new JMenuItem("Arial");
+        JMenuItem montserratItem = new JMenuItem("Montserrat");
+
+        changeFontFamilyItem.add(arialItem);
+        changeFontFamilyItem.add(montserratItem);
+
+        arialItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeFontFamily("Arial");
+            }
+        });
+
+        montserratItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeFontFamily("Montserrat");
+            }
+        });
+ 
+
+        textArea.setFont(new Font("Arial", Font.PLAIN, 20)); // Set default font size and family
+
+        setSize(800, 600); // Increased size for better visibility
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    private void openFile() {
+        int returnVal = fileChooser.showOpenDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                textArea.setText(""); // Clear existing text
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    textArea.append(line + "\n");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void saveFile() {
+        int returnVal = fileChooser.showSaveDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                writer.write(textArea.getText());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void undo() {
+        try {
+            if (undoManager.canUndo()) {
+                undoManager.undo();
+            }
+        } catch (CannotUndoException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void redo() {
+        try {
+            if (undoManager.canRedo()) {
+                undoManager.redo();
+            }
+        } catch (CannotRedoException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void increaseFontSize() {
+        Font currentFont = textArea.getFont();
+        textArea.setFont(currentFont.deriveFont(currentFont.getSize() + 2.0f));
+    }
+
+    private void decreaseFontSize() {
+        Font currentFont = textArea.getFont();
+        textArea.setFont(currentFont.deriveFont(currentFont.getSize() - 2.0f));
+    }
+
+    private void changeBackgroundColor() {
+        Color newColor = JColorChooser.showDialog(this, "Choose Background Color", textArea.getBackground());
+        if (newColor != null) {
+            textArea.setBackground(newColor);
+        }
+    }
+
+    private void changeFontColor() {
+        Color newColor = JColorChooser.showDialog(this, "Choose Font Color", textArea.getForeground());
+        if (newColor != null) {
+            textArea.setForeground(newColor);
+        }
+    }
+
+    private void changeFontFamily(String fontFamily) {
+        Font currentFont = textArea.getFont();
+        textArea.setFont(new Font(fontFamily, currentFont.getStyle(), currentFont.getSize()));
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new NotepadApp();
+            }
+        });
+    }
+}
